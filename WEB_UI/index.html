@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home IoT Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+
+        <!-- HEADER -->
+        <div id="header">
+            <img src="image/logohcm-ute.jpg" alt="Logo" id="logo"
+                 onerror="this.src='https://upload.wikimedia.org/wikipedia/vi/1/1d/Logo_HCMUTE.png'">
+            <h1>Hệ Thống Smart Home IoT</h1>
+
+            <button id="btn-sheet" class="btn-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1cagnPT-VjgVZQbuiONEpwPLZkDE69zXYohdCD5wWV9Y/edit?gid=0#gid=0', '_blank')">
+                    Google Sheet
+            </button>
+
+            <div id="auto-badge" style="display:none;">AUTO</div>
+        </div>
+
+        <div id="main" class="desktop-layout">
+
+            <!-- ========== CỘT 1: ĐIỀU KHIỂN ========== -->
+            <div class="left-panel">
+                <div class="section-title">Bảng Điều Khiển</div>
+
+                <!-- Chọn Phòng -->
+                <div class="card control-card room-card">
+                    <div class="device-label">🏠 Chọn Phòng</div>
+                    <div class="room-selector">
+                        <button class="room-btn active" id="btn-room-bedroom" onclick="switchRoom('phong_ngu')">🛏️ Phòng Ngủ</button>
+                        <button class="room-btn" id="btn-room-living" onclick="switchRoom('phong_khach')">🛋️ Phòng Khách</button>
+                    </div>
+                </div>
+
+                <!-- Chế độ Tự Động -->
+                <div class="card control-card auto-card">
+                    <div class="auto-header">
+                        <span class="device-label">Chế Độ Tự Động</span>
+                        <label class="switch">
+                            <input type="checkbox" id="switch-auto">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="auto-rules">
+                        <div class="rule">&gt;${TEMP_HIGH}°C → Bật quạt</div>
+                        <div class="rule">&lt;${TEMP_LOW}°C → Bật lò sưởi</div>
+                        <div class="rule">&lt;${HUM_LOW}% → Bật điều hòa</div>
+                    </div>
+                </div>
+
+                <!-- Quạt / TV -->
+                <div class="card control-card" id="fan-card">
+                    <div class="device-label" id="label-fan-ctrl">Quạt</div>
+                    <!-- 2 nút: dùng cho Phòng Khách (Quạt) -->
+                    <div class="btn-group" id="btn-group-fan">
+                        <button class="btn btn-on" id="btn-fan-on">Bật</button>
+                        <button class="btn btn-off active-btn" id="btn-fan-off">Tắt</button>
+                    </div>
+                    <!-- 1 nút toggle: dùng cho Phòng Ngủ (TV) -->
+                    <button class="btn btn-toggle-off" id="btn-tv-toggle" style="display:none;" onclick="handleTVToggle()">⏻ Tắt</button>
+                </div>
+
+                <!-- Lò Sưởi / Đèn - Switch -->
+                <div class="card control-card" id="heater-card">
+                    <div class="device-label" id="label-secondary-ctrl">Lò Sưởi</div>
+                    <label class="switch">
+                        <input type="checkbox" id="switch-losuoi">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <!-- Điều Hòa - Slider -->
+                <div class="card control-card" id="ac-card">
+                    <div class="device-label">Điều Hòa</div>
+                    <input type="range" id="slider-ac" min="0" max="100" value="0" step="1" class="range-slider">
+                    <div class="slider-value"><span id="ac-value">0</span>%</div>
+                </div>
+            </div>
+
+            <!-- ========== CỘT 2: TRUNG TÂM ========== -->
+            <div class="middle-panel">
+                <div class="section-title text-center">Giám Sát Trực Tuyến</div>
+
+                <!-- Đồng hồ -->
+                <div class="card clock-container">
+                    <div id="time" class="clock-large">00:00:00</div>
+                </div>
+
+                <!-- Icon thiết bị -->
+                <div class="device-icons-row">
+                    <div class="icon-box">
+                        <img src="image/fan_off.png" id="img-fan" alt="Quạt">
+                        <p id="label-fan-icon">Quạt</p>
+                    </div>
+                    <div class="icon-box">
+                        <img src="image/fireplace_off.png" id="img-heater" alt="Lò sưởi">
+                        <p id="label-secondary-icon">Lò sưởi</p>
+                    </div>
+                    <div class="icon-box">
+                        <img src="image/air-conditioner_off.png" id="img-ac" alt="Điều hòa">
+                        <span id="ac-status" class="ac-status-badge ac-off">Tắt</span>
+                        <p>Điều hòa</p>
+                    </div>
+                </div>
+
+                <!-- Thông số cảm biến -->
+                <div class="sensor-row">
+                    <div class="card param-box">
+                        <img src="image/nhietdo1.png" alt="Nhiệt độ"
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/1684/1684375.png'">
+                        <div class="value" id="val-nhietdo">--</div>
+                        <p>°C — Nhiệt độ</p>
+                    </div>
+                    <div class="card param-box">
+                        <img src="image/doam1.png" alt="Độ ẩm"
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/727/727770.png'">
+                        <div class="value" id="val-doam">--</div>
+                        <p>% — Độ ẩm</p>
+                    </div>
+                    <div class="card param-box gas-box">
+                        <img src="image/smoke.png" alt="Gas"
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/2190/2190552.png'">
+                        <div class="value" id="val-gas">--</div>
+                        <p>ADC — Khí Gas</p>
+                    </div>
+                </div>
+
+                <!-- Cảnh báo gas -->
+                <div id="gas-alert" class="gas-alert" style="display:none;">
+                    ⚠️ CẢNH BÁO: Phát hiện rò rỉ khí gas! Hãy kiểm tra ngay!
+                </div>
+
+            </div>
+
+            <!-- ========== CỘT 3: BIỂU ĐỒ ========== -->
+            <div class="right-panel">
+                <div class="section-title">Lịch sử Nhiệt độ</div>
+                <div class="card chart-box"><canvas id="tempChart"></canvas></div>
+
+                <div class="section-title" style="margin-top:16px;">Lịch sử Độ ẩm</div>
+                <div class="card chart-box"><canvas id="humChart"></canvas></div>
+
+                <div class="section-title" style="margin-top:16px;">Lịch sử Khí Gas</div>
+                <div class="card chart-box"><canvas id="gasChart"></canvas></div>
+            </div>
+
+        </div>
+
+        <footer id="footer">Dương Minh Thông — Nguyễn Thái An — Nguyễn Thế Bảo</footer>
+    </div>
+
+    <!-- CHATBOT -->
+    <div id="chatbot-widget">
+        <div id="chatbot-box" class="hidden">
+            <div class="chat-header">🤖 Trợ lý Smart Home AI</div>
+            <div id="chat-content">
+                <div class="msg bot">Chào! Tôi có thể điều khiển thiết bị và phân tích dữ liệu cảm biến cho bạn.</div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chat-input-text" placeholder="Nhập lệnh hoặc câu hỏi..."
+                       onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()">Gửi</button>
+            </div>
+        </div>
+        <button id="chatbot-toggle" onclick="toggleChat()">💬 Trợ lý AI</button>
+    </div>
+
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/8.2.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.10/firebase-database.js"></script>
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyDEY3NZNcE1xWclmxV3PWjhtSfCX7GbMXA",
+            authDomain: "iot-firebase-1593b.firebaseapp.com",
+            projectId: "iot-firebase-1593b",
+            storageBucket: "iot-firebase-1593b.firebasestorage.app",
+            messagingSenderId: "904127698000",
+            appId: "1:904127698000:web:c6e57638460eb0e190ed55"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        // Đồng hồ
+        function dongho() {
+            var t = new Date();
+            document.getElementById("time").innerHTML =
+                t.getHours().toString().padStart(2,'0') + ":" +
+                t.getMinutes().toString().padStart(2,'0') + ":" +
+                t.getSeconds().toString().padStart(2,'0');
+            setTimeout(dongho, 1000);
+        }
+        dongho();
+
+        // Inject ngưỡng vào auto-rules
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.auto-rules .rule').forEach((el, i) => {
+                if (i === 0) el.innerHTML = `🌡️ ≥30°C → Bật quạt`;
+                if (i === 1) el.innerHTML = `❄️ ≤20°C → Bật lò sưởi`;
+                if (i === 2) el.innerHTML = `💧 <45% → Bật điều hòa`;
+            });
+        });
+    </script>
+    <script src="function.js"></script>
+</body>
+</html>
